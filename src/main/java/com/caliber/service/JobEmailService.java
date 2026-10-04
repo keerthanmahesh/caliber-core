@@ -303,6 +303,11 @@ public class JobEmailService {
      * Converts a JobEmail domain entity into JobEmailDto.
      */
     public JobEmailDto toDto(JobEmail e) {
+        String body = e.getBodyText();
+        if (body != null && !body.isBlank()) {
+            body = gmailService.cleanPlainText(body);
+        }
+
         return JobEmailDto.builder()
                 .id(e.getId())
                 .messageId(e.getMessageId())
@@ -312,7 +317,7 @@ public class JobEmailService {
                 .recipientEmail(e.getRecipientEmail())
                 .subject(e.getSubject())
                 .snippet(e.getSnippet())
-                .bodyText(e.getBodyText())
+                .bodyText(body)
                 .bodyHtml(e.getBodyHtml())
                 .jobTitle(e.getJobTitle())
                 .clientOrCompany(e.getClientOrCompany())

@@ -25,6 +25,10 @@ import jakarta.mail.internet.MimeMultipart;
 import jakarta.mail.util.ByteArrayDataSource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.nodes.TextNode;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
@@ -395,24 +399,34 @@ public class GmailService {
         return null;
     }
 
+    private static final Pattern CSS_IMPORT_PATTERN = Pattern.compile("(?is)@import\\s+(?:url\\([^)]*\\)|['\"][^'\"]*['\"])\\s*;?");
+    private static final Pattern CSS_MEDIA_PATTERN = Pattern.compile("(?is)@media[^{]*\\{(?:[^{}]*\\{[^{}]*\\}[^{}]*|[^{}]*)*\\}");
+    private static final Pattern CSS_RULE_BLOCK_PATTERN = Pattern.compile("(?is)(?:^|[\\r\\n\\s])[.#a-zA-Z0-9_\\-*][^{}\\r\\n;]*?\\{[^}]*\\}");
+    private static final Pattern RESIDUAL_CSS_PROP_PATTERN = Pattern.compile("(?is)(?:-webkit-|-moz-|-ms-)?[a-zA-Z\\-]+\\s*:\\s*[^;{}]+\\s*;");
+    private static final Pattern MULTI_NEWLINE_PATTERN = Pattern.compile("(?m)\\n{3,}");
+    private static final Pattern TRAILING_SPACE_PER_LINE = Pattern.compile("(?m)[ \\t]+$");
+    private static final Pattern REGEX_HEAD = Pattern.compile("(?is)<head[^>]*>.*?</head>");
+    private static final Pattern REGEX_STYLE = Pattern.compile("(?is)<style[^>]*>.*?</style>");
+    private static final Pattern REGEX_SCRIPT = Pattern.compile("(?is)<script[^>]*>.*?</script>");
+    private static final Pattern BR_PATTERN = Pattern.compile("(?i)<br\\s*/?>");
+    private static final Pattern BLOCK_TAG_PATTERN = Pattern.compile("(?i)</?(?:p|div|tr|h[1-6]|table|blockquote)\\b[^>]*>");
+    private static final Pattern LI_PATTERN = Pattern.compile("(?i)<li\\b[^>]*>");
+    private static final Pattern TAG_PATTERN = Pattern.compile("<[^>]+>");
+
     /**
      * Recursively extracts plain text content from MIME parts.
      */
     public String extractPlainText(MessagePart part) {
         if (part == null) return EMPTY_STRING;
         if (AppConstants.MIME_TEXT_PLAIN.equalsIgnoreCase(part.getMimeType()) && part.getBody() != null && part.getBody().getData() != null) {
-            return decodeBase64Url(part.getBody().getData());
+            return cleanPlainText(decodeBase64Url(part.getBody().getData()));
         }
 
         if (part.getParts() != null) {
-            StringBuilder sb = new StringBuilder();
-            for (MessagePart subPart : part.getParts()) {
-                String subText = extractPlainText(subPart);
-                if (!subText.isBlank()) {
-                    sb.append(subText).append("\n");
-                }
+            String extracted = findPlainTextSubpart(part.getParts());
+            if (!extracted.isBlank()) {
+                return extracted;
             }
-            if (!sb.isEmpty()) return sb.toString();
         }
 
         if (AppConstants.MIME_TEXT_HTML.equalsIgnoreCase(part.getMimeType()) && part.getBody() != null && part.getBody().getData() != null) {
@@ -420,6 +434,28 @@ public class GmailService {
             return stripHtml(html);
         }
 
+        return EMPTY_STRING;
+    }
+
+    private String findPlainTextSubpart(List<MessagePart> parts) {
+        for (MessagePart subPart : parts) {
+            if (AppConstants.MIME_TEXT_PLAIN.equalsIgnoreCase(subPart.getMimeType())) {
+                String subText = extractPlainText(subPart);
+                if (!subText.isBlank()) return subText;
+            }
+        }
+        for (MessagePart subPart : parts) {
+            if (subPart.getParts() != null) {
+                String subText = extractPlainText(subPart);
+                if (!subText.isBlank()) return subText;
+            }
+        }
+        for (MessagePart subPart : parts) {
+            if (AppConstants.MIME_TEXT_HTML.equalsIgnoreCase(subPart.getMimeType())) {
+                String subText = extractPlainText(subPart);
+                if (!subText.isBlank()) return subText;
+            }
+        }
         return EMPTY_STRING;
     }
 
@@ -442,11 +478,6 @@ public class GmailService {
         return EMPTY_STRING;
     }
 
-    private static final Pattern STYLE_PATTERN = Pattern.compile("(?i)<style.*?</style>");
-    private static final Pattern SCRIPT_PATTERN = Pattern.compile("(?i)<script.*?</script>");
-    private static final Pattern TAG_PATTERN = Pattern.compile("<[^>]+>");
-    private static final Pattern WHITESPACE_PATTERN = Pattern.compile("\\s+");
-
     private String decodeBase64Url(String base64Url) {
         if (base64Url == null || base64Url.isBlank()) {
             return EMPTY_STRING;
@@ -460,15 +491,80 @@ public class GmailService {
         }
     }
 
-    private String stripHtml(String html) {
+    /**
+     * Strips HTML markup, removes script/style blocks, and formats readable plain text.
+     */
+    public String stripHtml(String html) {
+        if (html == null || html.isBlank()) return EMPTY_STRING;
+        try {
+            Document doc = Jsoup.parse(html);
+            doc.select("head, style, script, noscript, svg, xml, iframe, link, meta").remove();
+
+            for (Element br : doc.select("br")) {
+                br.replaceWith(new TextNode("\n"));
+            }
+            for (Element p : doc.select("p, div, tr, h1, h2, h3, h4, h5, h6")) {
+                p.prepend("\n");
+            }
+            for (Element li : doc.select("li")) {
+                li.prepend("\n• ");
+            }
+            for (Element td : doc.select("td, th")) {
+                td.append("  ");
+            }
+
+            String text = doc.body() != null ? doc.body().wholeText() : doc.wholeText();
+            return cleanPlainText(text);
+        } catch (Exception e) {
+            log.warn("Jsoup parsing failed, falling back to regex: {}", e.getMessage());
+            return cleanWithRegex(html);
+        }
+    }
+
+    private String cleanWithRegex(String html) {
         if (html == null) return EMPTY_STRING;
-        String text = STYLE_PATTERN.matcher(html).replaceAll(EMPTY_STRING);
-        text = SCRIPT_PATTERN.matcher(text).replaceAll(EMPTY_STRING);
+        String text = REGEX_HEAD.matcher(html).replaceAll(EMPTY_STRING);
+        text = REGEX_STYLE.matcher(text).replaceAll(EMPTY_STRING);
+        text = REGEX_SCRIPT.matcher(text).replaceAll(EMPTY_STRING);
+        text = BR_PATTERN.matcher(text).replaceAll("\n");
+        text = BLOCK_TAG_PATTERN.matcher(text).replaceAll("\n");
+        text = LI_PATTERN.matcher(text).replaceAll("\n• ");
         text = TAG_PATTERN.matcher(text).replaceAll(" ");
-        text = text.replace("&nbsp;", " ")
+        return cleanPlainText(text);
+    }
+
+    /**
+     * Cleans plain text by stripping residual CSS definitions, media queries,
+     * unescaped HTML entities, and excessive whitespace.
+     */
+    public String cleanPlainText(String text) {
+        if (text == null || text.isBlank()) {
+            return EMPTY_STRING;
+        }
+
+        String cleaned = text;
+        cleaned = CSS_IMPORT_PATTERN.matcher(cleaned).replaceAll(EMPTY_STRING);
+        cleaned = CSS_MEDIA_PATTERN.matcher(cleaned).replaceAll(EMPTY_STRING);
+
+        int prevLength = -1;
+        int maxPasses = 5;
+        while (maxPasses-- > 0 && cleaned.length() != prevLength && cleaned.contains("{") && cleaned.contains("}")) {
+            prevLength = cleaned.length();
+            cleaned = CSS_RULE_BLOCK_PATTERN.matcher(cleaned).replaceAll(" ");
+        }
+
+        cleaned = RESIDUAL_CSS_PROP_PATTERN.matcher(cleaned).replaceAll(EMPTY_STRING);
+
+        cleaned = cleaned.replace("&nbsp;", " ")
                 .replace("&amp;", "&")
                 .replace("&lt;", "<")
-                .replace("&gt;", ">");
-        return WHITESPACE_PATTERN.matcher(text).replaceAll(" ").trim();
+                .replace("&gt;", ">")
+                .replace("&quot;", "\"")
+                .replace("&#39;", "'");
+
+        cleaned = TRAILING_SPACE_PER_LINE.matcher(cleaned).replaceAll(EMPTY_STRING);
+        cleaned = MULTI_NEWLINE_PATTERN.matcher(cleaned).replaceAll("\n\n");
+
+        return cleaned.trim();
     }
 }
