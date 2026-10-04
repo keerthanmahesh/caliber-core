@@ -31,6 +31,12 @@ public interface JobEmailRepository extends MongoRepository<JobEmail, String> {
 
     Page<JobEmail> findByEmploymentType(EmploymentType employmentType, Pageable pageable);
 
+    @Query("{ 'employmentType': ?0, 'applicationStatus': { $nin: ?1 } }")
+    Page<JobEmail> findByEmploymentTypeAndApplicationStatusNotIn(EmploymentType employmentType, Collection<ApplicationStatus> excludedStatuses, Pageable pageable);
+
+    @Query("{ $or: [ { 'employmentType': 'UNSPECIFIED' }, { 'employmentType': null } ], 'applicationStatus': { $nin: ?0 } }")
+    Page<JobEmail> findUnspecifiedAndApplicationStatusNotIn(Collection<ApplicationStatus> excludedStatuses, Pageable pageable);
+
     @Query("{ 'applicationStatus': ?0 }")
     Page<JobEmail> findByApplicationStatus(ApplicationStatus applicationStatus, Pageable pageable);
 
@@ -41,12 +47,12 @@ public interface JobEmailRepository extends MongoRepository<JobEmail, String> {
             "{ $group: { " +
             "    _id: null, " +
             "    total: { $sum: 1 }, " +
-            "    c2c: { $sum: { $cond: [{ $eq: ['$employmentType', 'C2C'] }, 1, 0] } }, " +
-            "    c2h: { $sum: { $cond: [{ $eq: ['$employmentType', 'C2H'] }, 1, 0] } }, " +
-            "    w2: { $sum: { $cond: [{ $eq: ['$employmentType', 'W2'] }, 1, 0] } }, " +
-            "    fullTime: { $sum: { $cond: [{ $eq: ['$employmentType', 'FULL_TIME'] }, 1, 0] } }, " +
-            "    unspecified: { $sum: { $cond: [{ $or: [{ $eq: ['$employmentType', 'UNSPECIFIED'] }, { $eq: [{ $ifNull: ['$employmentType', null] }, null] }] }, 1, 0] } }, " +
-            "    confirmedC2c: { $sum: { $cond: [{ $eq: ['$employmentType', 'C2C'] }, 1, 0] } }, " +
+            "    c2c: { $sum: { $cond: [{ $and: [{ $eq: ['$employmentType', 'C2C'] }, { $or: [{ $eq: ['$applicationStatus', 'PENDING'] }, { $eq: [{ $ifNull: ['$applicationStatus', null] }, null] }] }] }, 1, 0] } }, " +
+            "    c2h: { $sum: { $cond: [{ $and: [{ $eq: ['$employmentType', 'C2H'] }, { $or: [{ $eq: ['$applicationStatus', 'PENDING'] }, { $eq: [{ $ifNull: ['$applicationStatus', null] }, null] }] }] }, 1, 0] } }, " +
+            "    w2: { $sum: { $cond: [{ $and: [{ $eq: ['$employmentType', 'W2'] }, { $or: [{ $eq: ['$applicationStatus', 'PENDING'] }, { $eq: [{ $ifNull: ['$applicationStatus', null] }, null] }] }] }, 1, 0] } }, " +
+            "    fullTime: { $sum: { $cond: [{ $and: [{ $eq: ['$employmentType', 'FULL_TIME'] }, { $or: [{ $eq: ['$applicationStatus', 'PENDING'] }, { $eq: [{ $ifNull: ['$applicationStatus', null] }, null] }] }] }, 1, 0] } }, " +
+            "    unspecified: { $sum: { $cond: [{ $and: [{ $or: [{ $eq: ['$employmentType', 'UNSPECIFIED'] }, { $eq: [{ $ifNull: ['$employmentType', null] }, null] }] }, { $or: [{ $eq: ['$applicationStatus', 'PENDING'] }, { $eq: [{ $ifNull: ['$applicationStatus', null] }, null] }] }] }, 1, 0] } }, " +
+            "    confirmedC2c: { $sum: { $cond: [{ $and: [{ $eq: ['$employmentType', 'C2C'] }, { $or: [{ $eq: ['$applicationStatus', 'PENDING'] }, { $eq: [{ $ifNull: ['$applicationStatus', null] }, null] }] }] }, 1, 0] } }, " +
             "    pending: { $sum: { $cond: [{ $or: [{ $eq: ['$applicationStatus', 'PENDING'] }, { $eq: [{ $ifNull: ['$applicationStatus', null] }, null] }] }, 1, 0] } }, " +
             "    inquired: { $sum: { $cond: [{ $eq: ['$applicationStatus', 'INQUIRED'] }, 1, 0] } }, " +
             "    applied: { $sum: { $cond: [{ $eq: ['$applicationStatus', 'APPLIED'] }, 1, 0] } }, " +

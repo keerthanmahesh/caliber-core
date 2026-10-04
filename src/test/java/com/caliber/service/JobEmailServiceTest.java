@@ -77,37 +77,49 @@ class JobEmailServiceTest {
     @Test
     void listJobs_WithTabW2_CallsFindByEmploymentTypeW2() {
         Page<JobEmail> page = new PageImpl<>(List.of(createSampleEmail("2")));
-        when(jobEmailRepository.findByEmploymentType(eq(EmploymentType.W2), any(Pageable.class))).thenReturn(page);
+        when(jobEmailRepository.findByEmploymentTypeAndApplicationStatusNotIn(eq(EmploymentType.W2), eq(AppConstants.ACTED_STATUSES), any(Pageable.class))).thenReturn(page);
 
         Page<JobEmailDto> result = jobEmailService.listJobs("w2", null, null, 0, 10);
 
         assertNotNull(result);
         assertEquals(1, result.getTotalElements());
-        verify(jobEmailRepository).findByEmploymentType(eq(EmploymentType.W2), any(Pageable.class));
+        verify(jobEmailRepository).findByEmploymentTypeAndApplicationStatusNotIn(eq(EmploymentType.W2), eq(AppConstants.ACTED_STATUSES), any(Pageable.class));
     }
 
     @Test
     void listJobs_WithTabC2C_CallsFindByEmploymentTypeC2C() {
         Page<JobEmail> page = new PageImpl<>(List.of(createSampleEmail("3")));
-        when(jobEmailRepository.findByEmploymentType(eq(EmploymentType.C2C), any(Pageable.class))).thenReturn(page);
+        when(jobEmailRepository.findByEmploymentTypeAndApplicationStatusNotIn(eq(EmploymentType.C2C), eq(AppConstants.ACTED_STATUSES), any(Pageable.class))).thenReturn(page);
 
         Page<JobEmailDto> result = jobEmailService.listJobs("c2c", null, null, 0, 10);
 
         assertNotNull(result);
         assertEquals(1, result.getTotalElements());
-        verify(jobEmailRepository).findByEmploymentType(eq(EmploymentType.C2C), any(Pageable.class));
+        verify(jobEmailRepository).findByEmploymentTypeAndApplicationStatusNotIn(eq(EmploymentType.C2C), eq(AppConstants.ACTED_STATUSES), any(Pageable.class));
     }
 
     @Test
     void listJobs_WithTabFullTime_CallsFindByEmploymentTypeFullTime() {
         Page<JobEmail> page = new PageImpl<>(List.of(createSampleEmail("3b")));
-        when(jobEmailRepository.findByEmploymentType(eq(EmploymentType.FULL_TIME), any(Pageable.class))).thenReturn(page);
+        when(jobEmailRepository.findByEmploymentTypeAndApplicationStatusNotIn(eq(EmploymentType.FULL_TIME), eq(AppConstants.ACTED_STATUSES), any(Pageable.class))).thenReturn(page);
 
         Page<JobEmailDto> result = jobEmailService.listJobs("full_time", null, null, 0, 10);
 
         assertNotNull(result);
         assertEquals(1, result.getTotalElements());
-        verify(jobEmailRepository).findByEmploymentType(eq(EmploymentType.FULL_TIME), any(Pageable.class));
+        verify(jobEmailRepository).findByEmploymentTypeAndApplicationStatusNotIn(eq(EmploymentType.FULL_TIME), eq(AppConstants.ACTED_STATUSES), any(Pageable.class));
+    }
+
+    @Test
+    void listJobs_WithTabUnspecified_CallsFindUnspecifiedAndApplicationStatusNotIn() {
+        Page<JobEmail> page = new PageImpl<>(List.of(createSampleEmail("3c")));
+        when(jobEmailRepository.findUnspecifiedAndApplicationStatusNotIn(eq(AppConstants.ACTED_STATUSES), any(Pageable.class))).thenReturn(page);
+
+        Page<JobEmailDto> result = jobEmailService.listJobs("unspecified", null, null, 0, 10);
+
+        assertNotNull(result);
+        assertEquals(1, result.getTotalElements());
+        verify(jobEmailRepository).findUnspecifiedAndApplicationStatusNotIn(eq(AppConstants.ACTED_STATUSES), any(Pageable.class));
     }
 
     @Test

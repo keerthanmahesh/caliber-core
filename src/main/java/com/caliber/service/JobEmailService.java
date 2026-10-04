@@ -68,15 +68,15 @@ public class JobEmailService {
         String normalizedTab = tab.trim().toLowerCase();
         return switch (normalizedTab) {
             case AppConstants.TAB_C2C, AppConstants.TAB_CONFIRMED ->
-                    jobEmailRepository.findByEmploymentType(EmploymentType.C2C, pageable);
+                    jobEmailRepository.findByEmploymentTypeAndApplicationStatusNotIn(EmploymentType.C2C, AppConstants.ACTED_STATUSES, pageable);
             case AppConstants.TAB_C2H ->
-                    jobEmailRepository.findByEmploymentType(EmploymentType.C2H, pageable);
+                    jobEmailRepository.findByEmploymentTypeAndApplicationStatusNotIn(EmploymentType.C2H, AppConstants.ACTED_STATUSES, pageable);
             case AppConstants.TAB_W2 ->
-                    jobEmailRepository.findByEmploymentType(EmploymentType.W2, pageable);
+                    jobEmailRepository.findByEmploymentTypeAndApplicationStatusNotIn(EmploymentType.W2, AppConstants.ACTED_STATUSES, pageable);
             case AppConstants.TAB_FULL_TIME ->
-                    jobEmailRepository.findByEmploymentType(EmploymentType.FULL_TIME, pageable);
+                    jobEmailRepository.findByEmploymentTypeAndApplicationStatusNotIn(EmploymentType.FULL_TIME, AppConstants.ACTED_STATUSES, pageable);
             case AppConstants.TAB_UNSPECIFIED ->
-                    jobEmailRepository.findByEmploymentType(EmploymentType.UNSPECIFIED, pageable);
+                    jobEmailRepository.findUnspecifiedAndApplicationStatusNotIn(AppConstants.ACTED_STATUSES, pageable);
             case AppConstants.TAB_HISTORY, AppConstants.TAB_ACTED ->
                     findHistoryByStatus(status, pageable);
             default ->
@@ -87,7 +87,7 @@ public class JobEmailService {
     private Page<JobEmail> findHistoryByStatus(String status, Pageable pageable) {
         if (status == null || status.isBlank() || AppConstants.STATUS_ACTED.equalsIgnoreCase(status)) {
             return jobEmailRepository.findByApplicationStatusIn(
-                    List.of(ApplicationStatus.INQUIRED, ApplicationStatus.APPLIED, ApplicationStatus.DISMISSED),
+                    AppConstants.ACTED_STATUSES,
                     pageable
             );
         }

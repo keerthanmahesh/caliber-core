@@ -1,5 +1,8 @@
 package com.caliber.constant;
 
+import com.caliber.model.ApplicationStatus;
+import java.util.List;
+
 /**
  * Central application constants for Caliber Core.
  */
@@ -126,6 +129,11 @@ public final class AppConstants {
     // Status Filter Values
     public static final String STATUS_ALL = "ALL";
     public static final String STATUS_ACTED = "ACTED";
+    public static final List<ApplicationStatus> ACTED_STATUSES = List.of(
+            ApplicationStatus.INQUIRED,
+            ApplicationStatus.APPLIED,
+            ApplicationStatus.DISMISSED
+    );
 
     // Reply & Draft Types
     public static final String REPLY_TYPE_APPLY = "APPLY";
