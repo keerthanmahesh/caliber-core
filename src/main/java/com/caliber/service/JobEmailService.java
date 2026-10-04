@@ -193,6 +193,9 @@ public class JobEmailService {
             if (!email.getGmailLabels().contains(targetLabel)) {
                 email.getGmailLabels().add(targetLabel);
             }
+            if (!email.getGmailLabels().contains(AppConstants.GMAIL_LABEL_IMPORTANT)) {
+                email.getGmailLabels().add(AppConstants.GMAIL_LABEL_IMPORTANT);
+            }
 
             JobEmail updated = jobEmailRepository.save(email);
             return toDto(updated);

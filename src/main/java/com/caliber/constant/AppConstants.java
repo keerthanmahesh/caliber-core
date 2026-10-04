@@ -31,6 +31,8 @@ public final class AppConstants {
     // =========================================================================
 
     public static final String GMAIL_USER_ME = "me";
+    public static final String GMAIL_LABEL_IMPORTANT = "IMPORTANT";
+    public static final String GMAIL_LABEL_INBOX = "INBOX";
 
     public static final String DEFAULT_GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.modify";
     public static final String DEFAULT_GMAIL_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";

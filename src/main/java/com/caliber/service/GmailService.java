@@ -111,9 +111,9 @@ public class GmailService {
         Message sentMessage = gmail.users().messages().send(AppConstants.GMAIL_USER_ME, message).execute();
         log.info("Successfully sent reply for thread {} with Message-ID {}", originalEmail.getThreadId(), sentMessage.getId());
 
-        // 3. Apply Gmail Labels & Inbox Removal
+        // 3. Apply Gmail Labels, Inbox Removal, and Mark as Important
         try {
-            applyLabelAndArchive(gmail, originalEmail.getMessageId(), originalEmail.getThreadId(), targetLabelName, archiveInbox);
+            applyLabelAndArchive(gmail, originalEmail.getMessageId(), originalEmail.getThreadId(), targetLabelName, archiveInbox, true);
         } catch (Exception e) {
             log.warn("Failed to update Gmail labels for message {}: {}", originalEmail.getMessageId(), e.getMessage());
         }
@@ -200,16 +200,23 @@ public class GmailService {
      * rather than stacked.
      */
     public void applyLabelAndArchive(Gmail gmail, String messageId, String threadId, String targetLabelName, boolean archiveInbox) throws IOException {
+        applyLabelAndArchive(gmail, messageId, threadId, targetLabelName, archiveInbox, false);
+    }
+
+    public void applyLabelAndArchive(Gmail gmail, String messageId, String threadId, String targetLabelName, boolean archiveInbox, boolean markImportant) throws IOException {
         String targetLabelId = getOrCreateLabel(gmail, targetLabelName);
 
         List<String> addLabels = new ArrayList<>();
         if (targetLabelId != null) {
             addLabels.add(targetLabelId);
         }
+        if (markImportant) {
+            addLabels.add(AppConstants.GMAIL_LABEL_IMPORTANT);
+        }
 
         List<String> removeLabels = new ArrayList<>();
         if (archiveInbox) {
-            removeLabels.add("INBOX");
+            removeLabels.add(AppConstants.GMAIL_LABEL_INBOX);
         }
 
         collectConflictingEmploymentLabels(gmail, targetLabelName, removeLabels);

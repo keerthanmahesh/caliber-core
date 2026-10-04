@@ -201,6 +201,7 @@ class JobEmailServiceTest {
         assertEquals(ApplicationStatus.INQUIRED, dto.getApplicationStatus());
         assertEquals("sent-msg-123", dto.getReplyMessageId());
         assertTrue(dto.getGmailLabels().contains("Jobs/Inquired"));
+        assertTrue(dto.getGmailLabels().contains(AppConstants.GMAIL_LABEL_IMPORTANT));
     }
 
     @Test
