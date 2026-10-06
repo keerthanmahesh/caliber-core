@@ -29,5 +29,5 @@ public class SendReplyRequest {
     private boolean attachResume = false;
 
     @Builder.Default
-    private boolean archiveFromInbox = true;
+    private boolean archiveFromInbox = false;
 }
