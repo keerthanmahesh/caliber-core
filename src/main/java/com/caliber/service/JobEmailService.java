@@ -67,7 +67,7 @@ public class JobEmailService {
 
         String normalizedTab = tab.trim().toLowerCase();
         return switch (normalizedTab) {
-            case AppConstants.TAB_C2C, AppConstants.TAB_CONFIRMED ->
+            case AppConstants.TAB_C2C ->
                     jobEmailRepository.findByEmploymentTypeAndApplicationStatusNotIn(EmploymentType.C2C, AppConstants.ACTED_STATUSES, pageable);
             case AppConstants.TAB_C2H ->
                     jobEmailRepository.findByEmploymentTypeAndApplicationStatusNotIn(EmploymentType.C2H, AppConstants.ACTED_STATUSES, pageable);

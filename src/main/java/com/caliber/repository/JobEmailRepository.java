@@ -31,16 +31,13 @@ public interface JobEmailRepository extends MongoRepository<JobEmail, String> {
 
     Page<JobEmail> findByEmploymentType(EmploymentType employmentType, Pageable pageable);
 
-    @Query("{ 'employmentType': ?0, 'applicationStatus': { $nin: ?1 } }")
     Page<JobEmail> findByEmploymentTypeAndApplicationStatusNotIn(EmploymentType employmentType, Collection<ApplicationStatus> excludedStatuses, Pageable pageable);
 
     @Query("{ $or: [ { 'employmentType': 'UNSPECIFIED' }, { 'employmentType': null } ], 'applicationStatus': { $nin: ?0 } }")
     Page<JobEmail> findUnspecifiedAndApplicationStatusNotIn(Collection<ApplicationStatus> excludedStatuses, Pageable pageable);
 
-    @Query("{ 'applicationStatus': ?0 }")
     Page<JobEmail> findByApplicationStatus(ApplicationStatus applicationStatus, Pageable pageable);
 
-    @Query("{ 'applicationStatus': { $in: ?0 } }")
     Page<JobEmail> findByApplicationStatusIn(Collection<ApplicationStatus> statuses, Pageable pageable);
 
     @Aggregation(pipeline = {

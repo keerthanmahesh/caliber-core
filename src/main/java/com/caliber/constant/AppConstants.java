@@ -118,7 +118,6 @@ public final class AppConstants {
 
     // Tab Names
     public static final String TAB_C2C = "c2c";
-    public static final String TAB_CONFIRMED = "confirmed";
     public static final String TAB_C2H = "c2h";
     public static final String TAB_W2 = "w2";
     public static final String TAB_FULL_TIME = "full_time";
