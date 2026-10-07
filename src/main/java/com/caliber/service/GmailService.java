@@ -171,33 +171,60 @@ public class GmailService {
     }
 
     private void setReplyContent(MimeMessage mimeMessage, String body, ResumeDocument resume) throws MessagingException {
-        if (resume != null && resume.getData() != null && resume.getData().length > 0) {
-            mimeMessage.setContent(buildMultipartWithResume(body, resume));
-        } else if (isHtml(body)) {
-            mimeMessage.setContent(body, "text/html; charset=UTF-8");
+        boolean hasResume = (resume != null && resume.getData() != null && resume.getData().length > 0);
+        boolean htmlContent = isHtml(body);
+
+        if (hasResume) {
+            mimeMessage.setContent(buildMultipartWithResume(body, resume, htmlContent));
+        } else if (htmlContent) {
+            mimeMessage.setContent(buildAlternativeMultipart(body));
         } else {
             mimeMessage.setText(body, StandardCharsets.UTF_8.name());
         }
     }
 
-    private Multipart buildMultipartWithResume(String body, ResumeDocument resume) throws MessagingException {
-        MimeBodyPart textPart = new MimeBodyPart();
-        if (isHtml(body)) {
-            textPart.setContent(body, "text/html; charset=UTF-8");
-        } else {
-            textPart.setText(body, StandardCharsets.UTF_8.name());
-        }
+    private Multipart buildAlternativeMultipart(String htmlBody) throws MessagingException {
+        MimeMultipart alternative = new MimeMultipart("alternative");
 
+        // 1. Plain text fallback part
+        MimeBodyPart plainPart = new MimeBodyPart();
+        plainPart.setText(stripHtml(htmlBody), StandardCharsets.UTF_8.name());
+        plainPart.setHeader("Content-Type", "text/plain; charset=UTF-8");
+        alternative.addBodyPart(plainPart);
+
+        // 2. Rich HTML part
+        MimeBodyPart htmlPart = new MimeBodyPart();
+        htmlPart.setContent(htmlBody, "text/html; charset=UTF-8");
+        htmlPart.setHeader("Content-Type", "text/html; charset=UTF-8");
+        alternative.addBodyPart(htmlPart);
+
+        return alternative;
+    }
+
+    private Multipart buildMultipartWithResume(String body, ResumeDocument resume, boolean isHtml) throws MessagingException {
+        MimeMultipart mixed = new MimeMultipart("mixed");
+
+        // 1. Body content (alternative multipart for HTML, plain text for text)
+        MimeBodyPart bodyContainerPart = new MimeBodyPart();
+        if (isHtml) {
+            bodyContainerPart.setContent(buildAlternativeMultipart(body));
+        } else {
+            bodyContainerPart.setText(body, StandardCharsets.UTF_8.name());
+            bodyContainerPart.setHeader("Content-Type", "text/plain; charset=UTF-8");
+        }
+        mixed.addBodyPart(bodyContainerPart);
+
+        // 2. Resume attachment part
         MimeBodyPart attachmentPart = new MimeBodyPart();
         String contentType = resume.getContentType() != null ? resume.getContentType() : "application/pdf";
         DataSource source = new ByteArrayDataSource(resume.getData(), contentType);
         attachmentPart.setDataHandler(new DataHandler(source));
-        attachmentPart.setFileName(resume.getFilename() != null ? resume.getFilename() : "Resume.pdf");
+        String filename = resume.getFilename() != null ? resume.getFilename() : "Resume.pdf";
+        attachmentPart.setFileName(filename);
+        attachmentPart.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
+        mixed.addBodyPart(attachmentPart);
 
-        Multipart multipart = new MimeMultipart("mixed");
-        multipart.addBodyPart(textPart);
-        multipart.addBodyPart(attachmentPart);
-        return multipart;
+        return mixed;
     }
 
     private boolean isHtml(String body) {

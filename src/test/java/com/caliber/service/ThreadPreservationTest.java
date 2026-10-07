@@ -78,4 +78,70 @@ class ThreadPreservationTest {
         assertTrue(mimeMessage.getSubject().startsWith("Re: "));
         assertTrue(mimeMessage.getContentType().startsWith("multipart/mixed"));
     }
+
+    @Test
+    void testReplyWithHtmlAndResumeAttachment() throws Exception {
+        JobEmail original = JobEmail.builder()
+                .messageId("msg-888@mail.gmail.com")
+                .threadId("thread-888")
+                .senderEmail("hr@enterprise.com")
+                .subject("Senior Java Developer")
+                .build();
+
+        ResumeDocument resume = ResumeDocument.builder()
+                .filename("Keerthan_Resume.pdf")
+                .contentType("application/pdf")
+                .data("PDF Bytes".getBytes(StandardCharsets.UTF_8))
+                .build();
+
+        String htmlBody = "<p>Hi HR,</p><p>I am interested in the role.</p><table><tr><td>Java</td><td>10 yrs</td></tr></table>";
+
+        MimeMessage mimeMessage = gmailService.composeReplyMimeMessage(
+                original,
+                "Senior Java Developer",
+                htmlBody,
+                resume
+        );
+
+        assertNotNull(mimeMessage);
+        assertTrue(mimeMessage.getContentType().startsWith("multipart/mixed"));
+
+        jakarta.mail.Multipart mixed = (jakarta.mail.Multipart) mimeMessage.getContent();
+        assertEquals(2, mixed.getCount());
+
+        jakarta.mail.BodyPart bodyContainer = mixed.getBodyPart(0);
+        assertTrue(bodyContainer.getContentType().startsWith("multipart/alternative"));
+
+        jakarta.mail.Multipart alt = (jakarta.mail.Multipart) bodyContainer.getContent();
+        assertEquals(2, alt.getCount());
+        assertTrue(alt.getBodyPart(0).getContentType().startsWith("text/plain"));
+        assertTrue(alt.getBodyPart(1).getContentType().startsWith("text/html"));
+    }
+
+    @Test
+    void testReplyWithHtmlWithoutAttachment() throws Exception {
+        JobEmail original = JobEmail.builder()
+                .messageId("msg-777@mail.gmail.com")
+                .threadId("thread-777")
+                .senderEmail("hr@enterprise.com")
+                .subject("Java Engineer")
+                .build();
+
+        String htmlBody = "<p>Hi HR,</p><p>Thanks for reaching out.</p>";
+
+        MimeMessage mimeMessage = gmailService.composeReplyMimeMessage(
+                original,
+                "Java Engineer",
+                htmlBody,
+                null
+        );
+
+        assertNotNull(mimeMessage);
+        assertTrue(mimeMessage.getContentType().startsWith("multipart/alternative"));
+
+        jakarta.mail.Multipart alt = (jakarta.mail.Multipart) mimeMessage.getContent();
+        assertEquals(2, alt.getCount());
+        assertTrue(alt.getBodyPart(0).getContentType().startsWith("text/plain"));
+        assertTrue(alt.getBodyPart(1).getContentType().startsWith("text/html"));
+    }
 }
