@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -103,7 +104,7 @@ public class JobEmailController {
     /**
      * Manually updates the employment type / label of a job email and synchronizes Gmail labels.
      */
-    @PatchMapping("/{id}/employment-type")
+    @RequestMapping(value = "/{id}/employment-type", method = {RequestMethod.PATCH, RequestMethod.POST, RequestMethod.PUT})
     public ResponseEntity<JobEmailDto> updateEmploymentType(
             @PathVariable String id,
             @RequestBody UpdateEmploymentTypeRequest request

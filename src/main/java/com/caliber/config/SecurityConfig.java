@@ -37,7 +37,7 @@ public class SecurityConfig {
     @Value("${security.cors.allowed-origins:http://localhost:3000,https://caliber-ui.vercel.app}")
     private List<String> allowedOrigins;
 
-    @Value("${security.cors.allowed-methods:GET,POST,PUT,DELETE,OPTIONS}")
+    @Value("${security.cors.allowed-methods:GET,POST,PUT,PATCH,DELETE,OPTIONS}")
     private List<String> allowedMethods;
 
     @Value("${security.cors.allowed-headers:Authorization,Content-Type,Accept,Origin,X-Requested-With,Cookie}")
