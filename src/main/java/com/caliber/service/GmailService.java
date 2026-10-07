@@ -173,6 +173,8 @@ public class GmailService {
     private void setReplyContent(MimeMessage mimeMessage, String body, ResumeDocument resume) throws MessagingException {
         if (resume != null && resume.getData() != null && resume.getData().length > 0) {
             mimeMessage.setContent(buildMultipartWithResume(body, resume));
+        } else if (isHtml(body)) {
+            mimeMessage.setContent(body, "text/html; charset=UTF-8");
         } else {
             mimeMessage.setText(body, StandardCharsets.UTF_8.name());
         }
@@ -180,7 +182,11 @@ public class GmailService {
 
     private Multipart buildMultipartWithResume(String body, ResumeDocument resume) throws MessagingException {
         MimeBodyPart textPart = new MimeBodyPart();
-        textPart.setText(body, StandardCharsets.UTF_8.name());
+        if (isHtml(body)) {
+            textPart.setContent(body, "text/html; charset=UTF-8");
+        } else {
+            textPart.setText(body, StandardCharsets.UTF_8.name());
+        }
 
         MimeBodyPart attachmentPart = new MimeBodyPart();
         String contentType = resume.getContentType() != null ? resume.getContentType() : "application/pdf";
@@ -192,6 +198,21 @@ public class GmailService {
         multipart.addBodyPart(textPart);
         multipart.addBodyPart(attachmentPart);
         return multipart;
+    }
+
+    private boolean isHtml(String body) {
+        if (body == null || body.isBlank()) {
+            return false;
+        }
+        String lower = body.toLowerCase();
+        return lower.contains("<html") || lower.contains("<body") || lower.contains("<div")
+                || lower.contains("<p>") || lower.contains("<p ") || lower.contains("<br")
+                || lower.contains("<table") || lower.contains("<b ") || lower.contains("<b>")
+                || lower.contains("<strong") || lower.contains("<i ") || lower.contains("<i>")
+                || lower.contains("<em ") || lower.contains("<em>") || lower.contains("<a ")
+                || lower.contains("<ul") || lower.contains("<ol") || lower.contains("<li")
+                || lower.contains("<span") || lower.contains("<h1") || lower.contains("<h2")
+                || lower.contains("<h3");
     }
 
     /**
