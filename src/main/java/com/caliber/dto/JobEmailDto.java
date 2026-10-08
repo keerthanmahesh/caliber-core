@@ -43,6 +43,10 @@ public class JobEmailDto {
     private String replyMessageId;
     private String lastReplyDraft;
 
+    public List<String> getSkills() {
+        return primarySkills;
+    }
+
     @Deprecated
     public EmploymentType getEmploymentStatus() {
         return employmentType;
