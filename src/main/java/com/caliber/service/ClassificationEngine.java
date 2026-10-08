@@ -117,6 +117,12 @@ public class ClassificationEngine {
     }
 
     private void populateJobMetadata(JobEmail email, AiExtractedJob ai) {
+        if (ai.getCompany() != null && !ai.getCompany().isBlank()) {
+            email.setCompany(ai.getCompany());
+        }
+        if (ai.getClient() != null && !ai.getClient().isBlank()) {
+            email.setClient(ai.getClient());
+        }
         if (ai.getClientOrCompany() != null && !ai.getClientOrCompany().isBlank()) {
             email.setClientOrCompany(ai.getClientOrCompany());
         }

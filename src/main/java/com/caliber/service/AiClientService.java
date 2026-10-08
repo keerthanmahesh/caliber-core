@@ -51,7 +51,9 @@ public class AiClientService {
             {
               "recruiterName": "Recruiter's full name or null/empty if unknown",
               "jobTitle": "Specific job title (e.g. Senior Java Backend Developer)",
-              "clientOrCompany": "Client name or staffing agency/end client",
+              "company": "Staffing agency, recruiter's company, or employer company name (e.g. Siri InfoSolutions Inc.)",
+              "client": "End client name if mentioned (e.g. Apple, Wells Fargo, Cisco) or null if unknown or direct hire",
+              "clientOrCompany": "Staffing agency or end client",
               "employmentType": "C2C | W2 | C2H | FULL_TIME | UNSPECIFIED",
               "rate": "Hourly rate, salary or 'Not Mentioned'",
               "locationType": "Remote | Hybrid | Onsite | Unspecified",

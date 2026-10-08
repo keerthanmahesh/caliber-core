@@ -324,6 +324,8 @@ public class JobEmailService {
                 .bodyHtml(e.getBodyHtml())
                 .jobTitle(e.getJobTitle())
                 .clientOrCompany(e.getClientOrCompany())
+                .company(resolveCompany(e))
+                .client(resolveClient(e))
                 .rate(e.getRate())
                 .locationType(e.getLocationType())
                 .location(e.getLocation())
@@ -338,5 +340,46 @@ public class JobEmailService {
                 .replyMessageId(e.getReplyMessageId())
                 .lastReplyDraft(e.getLastReplyDraft())
                 .build();
+    }
+
+    private String resolveCompany(JobEmail e) {
+        if (e.getCompany() != null && !e.getCompany().isBlank()) {
+            return e.getCompany();
+        }
+        if (e.getClientOrCompany() != null && !e.getClientOrCompany().isBlank()) {
+            return e.getClientOrCompany();
+        }
+        if (e.getSenderEmail() != null && !e.getSenderEmail().isBlank()) {
+            String domain = extractDomainName(e.getSenderEmail());
+            if (domain != null && !domain.equalsIgnoreCase("gmail") && !domain.equalsIgnoreCase("yahoo") && !domain.equalsIgnoreCase("outlook") && !domain.equalsIgnoreCase("hotmail")) {
+                return domain;
+            }
+        }
+        return null;
+    }
+
+    private String resolveClient(JobEmail e) {
+        if (e.getClient() != null && !e.getClient().isBlank()) {
+            return e.getClient();
+        }
+        return null;
+    }
+
+    private String extractDomainName(String email) {
+        int atIdx = email.indexOf('@');
+        if (atIdx != -1 && atIdx < email.length() - 1) {
+            String domainPart = email.substring(atIdx + 1).toLowerCase();
+            String[] parts = domainPart.split("\\.");
+            if (parts.length >= 2) {
+                String name = parts[parts.length - 2];
+                if (name.equalsIgnoreCase("co") || name.equalsIgnoreCase("com") || name.equalsIgnoreCase("org") || name.equalsIgnoreCase("net")) {
+                    if (parts.length >= 3) name = parts[parts.length - 3];
+                }
+                if (!name.isBlank()) {
+                    return Character.toUpperCase(name.charAt(0)) + name.substring(1);
+                }
+            }
+        }
+        return null;
     }
 }

@@ -27,6 +27,8 @@ public class JobEmailDto {
     private String bodyHtml;
     private String jobTitle;
     private String clientOrCompany;
+    private String company;
+    private String client;
     private String rate;
     private String locationType;
     private String location;

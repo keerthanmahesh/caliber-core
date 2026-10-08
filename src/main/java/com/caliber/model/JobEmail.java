@@ -43,6 +43,8 @@ public class JobEmail {
     // Structured fields extracted via Classification Engine & LLM
     private String jobTitle;
     private String clientOrCompany;
+    private String company;
+    private String client;
     private String rate;
     private String locationType; // Remote | Hybrid | Onsite | Unspecified
     private String location;

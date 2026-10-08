@@ -17,6 +17,8 @@ import java.util.List;
 public class AiExtractedJob {
     private String recruiterName;
     private String jobTitle;
+    private String company;
+    private String client;
     private String clientOrCompany;
     private String c2cStatus; // CONFIRMED | UNSPECIFIED | W2_ONLY | C2H | FULL_TIME | OTHER
     private String employmentType; // C2C | W2 | C2H | FULL_TIME | UNSPECIFIED
