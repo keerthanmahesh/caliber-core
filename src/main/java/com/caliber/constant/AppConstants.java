@@ -106,7 +106,7 @@ public final class AppConstants {
 
     public static final String FIELD_RECEIVED_AT = "receivedAt";
     public static final String DEFAULT_PAGE_NUMBER = "0";
-    public static final String DEFAULT_PAGE_SIZE = "20";
+    public static final String DEFAULT_PAGE_SIZE = "10";
 
     // Request Parameter Names
     public static final String PARAM_TAB = "tab";

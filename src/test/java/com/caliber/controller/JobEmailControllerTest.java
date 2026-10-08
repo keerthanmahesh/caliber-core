@@ -38,14 +38,14 @@ class JobEmailControllerTest {
     @Test
     void listJobs_DelegatesToService() {
         Page<JobEmailDto> mockPage = new PageImpl<>(List.of(JobEmailDto.builder().id("1").build()));
-        when(jobEmailService.listJobs("c2c", null, null, 0, 20)).thenReturn(mockPage);
+        when(jobEmailService.listJobs("c2c", null, null, 0, 10)).thenReturn(mockPage);
 
-        ResponseEntity<Page<JobEmailDto>> response = jobEmailController.listJobs("c2c", null, null, 0, 20);
+        ResponseEntity<Page<JobEmailDto>> response = jobEmailController.listJobs("c2c", null, null, 0, 10);
 
         assertNotNull(response);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(1, response.getBody().getTotalElements());
-        verify(jobEmailService).listJobs("c2c", null, null, 0, 20);
+        verify(jobEmailService).listJobs("c2c", null, null, 0, 10);
     }
 
     @Test
