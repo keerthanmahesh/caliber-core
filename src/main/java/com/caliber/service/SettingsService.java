@@ -49,7 +49,7 @@ public class SettingsService {
                             .gmailClientSecret(gmailConfig.getClientSecret())
                             .gmailRefreshToken(gmailConfig.getRefreshToken())
                             .pollIntervalMinutes((int) (gmailConfig.getPollIntervalMs() / 60000))
-                            .autoArchiveProcessed(gmailConfig.isAutoArchive())
+                            .autoArchiveProcessed(true)
                             .updatedAt(Instant.now())
                             .build();
                     return userSettingsRepository.save(s);

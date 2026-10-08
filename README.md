@@ -62,7 +62,6 @@ Configure the following variables in `.env` or your target deployment environmen
 | `GMAIL_REFRESH_TOKEN` | Google Cloud OAuth 2.0 Refresh Token | Required |
 | `GMAIL_REDIRECT_URI` | Registered OAuth callback URI | Required |
 | `GMAIL_POLL_INTERVAL_MS`| Scheduled poll heartbeat in milliseconds | `60000` (1 min) |
-| `GMAIL_AUTO_ARCHIVE` | Archive original email from inbox upon reply/action | `false` |
 | `GMAIL_MAX_RESULTS` | Maximum messages fetched per poll cycle | `50` |
 
 ---
