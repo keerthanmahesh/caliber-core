@@ -47,6 +47,10 @@ public class JobEmailDto {
         return primarySkills;
     }
 
+    public String getAiSummary() {
+        return summary;
+    }
+
     @Deprecated
     public EmploymentType getEmploymentStatus() {
         return employmentType;
