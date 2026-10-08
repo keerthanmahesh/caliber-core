@@ -57,10 +57,6 @@ public class IngestionService {
      */
     @Scheduled(fixedDelayString = "${caliber.gmail.poll-interval-ms:60000}", initialDelay = 60000)
     public void scheduledPoll() {
-        if (!gmailConfig.isPollEnabled()) {
-            return;
-        }
-
         log.debug("Running scheduled Gmail ingestion poll check for connected users...");
         List<UserSettings> connectedUsers = userSettingsRepository.findByGmailConnectedTrue();
         if (connectedUsers.isEmpty()) {

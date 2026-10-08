@@ -383,17 +383,7 @@ class IngestionServiceTest {
     }
 
     @Test
-    void testScheduledPollWhenPollDisabled() {
-        when(gmailConfig.isPollEnabled()).thenReturn(false);
-
-        ingestionService.scheduledPoll();
-
-        verify(userSettingsRepository, never()).findByGmailConnectedTrue();
-    }
-
-    @Test
     void testScheduledPollWhenNoConnectedUsers() {
-        when(gmailConfig.isPollEnabled()).thenReturn(true);
         when(userSettingsRepository.findByGmailConnectedTrue()).thenReturn(List.of());
 
         ingestionService.scheduledPoll();
@@ -403,7 +393,6 @@ class IngestionServiceTest {
 
     @Test
     void testScheduledPollWithConnectedUsers() throws Exception {
-        when(gmailConfig.isPollEnabled()).thenReturn(true);
         UserSettings user1 = UserSettings.builder().userId(USER_ID).gmailSearchQuery("query1").gmailConnected(true).build();
         UserSettings user2 = UserSettings.builder().userId("user-456").gmailSearchQuery("query2").gmailConnected(true).build();
         when(userSettingsRepository.findByGmailConnectedTrue()).thenReturn(List.of(user1, user2));
@@ -421,7 +410,6 @@ class IngestionServiceTest {
 
     @Test
     void testScheduledPollContinuesWhenOneUserFails() throws Exception {
-        when(gmailConfig.isPollEnabled()).thenReturn(true);
         UserSettings user1 = UserSettings.builder().userId("failing-user").gmailSearchQuery("q").gmailConnected(true).build();
         UserSettings user2 = UserSettings.builder().userId(USER_ID).gmailSearchQuery("query1").gmailConnected(true).build();
         when(userSettingsRepository.findByGmailConnectedTrue()).thenReturn(List.of(user1, user2));
@@ -435,7 +423,6 @@ class IngestionServiceTest {
 
     @Test
     void testScheduledPollSkipsUserIfIntervalNotReached() throws Exception {
-        when(gmailConfig.isPollEnabled()).thenReturn(true);
         UserSettings userRecent = UserSettings.builder()
                 .userId(USER_ID)
                 .gmailSearchQuery("query1")
@@ -453,7 +440,6 @@ class IngestionServiceTest {
 
     @Test
     void testScheduledPollSyncsUserIfIntervalReached() throws Exception {
-        when(gmailConfig.isPollEnabled()).thenReturn(true);
         UserSettings userDue = UserSettings.builder()
                 .userId(USER_ID)
                 .gmailSearchQuery("query1")

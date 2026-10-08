@@ -21,7 +21,6 @@ public class GmailConfig {
     private String redirectUri;
     private long pollIntervalMs;
     private boolean autoArchive;
-    private boolean pollEnabled;
     private String scope;
     private String authUrl;
     private String tokenUrl;
