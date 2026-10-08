@@ -40,7 +40,19 @@ public class UserSettings {
     private String gmailSearchQuery;
 
     @Builder.Default
-    private Integer pollIntervalMinutes = 10;
+    private Integer pollIntervalHours = 1;
+
+    private Integer pollIntervalMinutes;
+
+    public int getEffectivePollIntervalHours() {
+        if (pollIntervalHours != null && pollIntervalHours > 0) {
+            return pollIntervalHours;
+        }
+        if (pollIntervalMinutes != null && pollIntervalMinutes > 0) {
+            return Math.max(1, Math.round(pollIntervalMinutes / 60.0f));
+        }
+        return 1;
+    }
 
     @Builder.Default
     private boolean autoArchiveProcessed = true;

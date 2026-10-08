@@ -19,8 +19,12 @@ public class GmailConfig {
     private String clientSecret;
     private String refreshToken;
     private String redirectUri;
-    private long pollIntervalMs;
+    private int pollIntervalHours = 1;
     private String scope;
+
+    public long getPollIntervalMs() {
+        return (long) pollIntervalHours * 3600000L;
+    }
     private String authUrl;
     private String tokenUrl;
     private long tokenExpirySeconds;

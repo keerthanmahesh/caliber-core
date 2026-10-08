@@ -84,7 +84,7 @@ class IngestionServiceTest {
                 UserSettings.builder().userId(USER_ID).gmailSearchQuery("label:inbox").build()
         ));
         lenient().when(gmailConfig.getMaxResults()).thenReturn(50L);
-        lenient().when(gmailConfig.getPollIntervalMs()).thenReturn(60000L);
+        lenient().when(gmailConfig.getPollIntervalHours()).thenReturn(1);
         lenient().when(gmailAuthService.isConfigured(USER_ID)).thenReturn(true);
         lenient().when(gmailAuthService.getGmailClient(USER_ID)).thenReturn(gmail);
         lenient().when(userRepository.findById(USER_ID)).thenReturn(Optional.of(
@@ -428,8 +428,8 @@ class IngestionServiceTest {
                 .userId(USER_ID)
                 .gmailSearchQuery("query1")
                 .gmailConnected(true)
-                .pollIntervalMinutes(15)
-                .lastSyncedAt(Instant.now().minus(java.time.Duration.ofMinutes(5)))
+                .pollIntervalHours(1)
+                .lastSyncedAt(Instant.now().minus(java.time.Duration.ofMinutes(15)))
                 .build();
 
         when(userSettingsRepository.findByGmailConnectedTrue()).thenReturn(List.of(userRecent));
@@ -445,8 +445,8 @@ class IngestionServiceTest {
                 .userId(USER_ID)
                 .gmailSearchQuery("query1")
                 .gmailConnected(true)
-                .pollIntervalMinutes(10)
-                .lastSyncedAt(Instant.now().minus(java.time.Duration.ofMinutes(12)))
+                .pollIntervalHours(1)
+                .lastSyncedAt(Instant.now().minus(java.time.Duration.ofMinutes(75)))
                 .build();
 
         when(userSettingsRepository.findByGmailConnectedTrue()).thenReturn(List.of(userDue));
@@ -460,22 +460,23 @@ class IngestionServiceTest {
 
     @Test
     void testScheduledPollFallsBackToConfiguredPollIntervalWhenUserSettingNull() throws Exception {
-        // Set server poll interval to 10 minutes (600000 ms)
-        when(gmailConfig.getPollIntervalMs()).thenReturn(600000L);
+        // Set server poll interval to 2 hours
+        when(gmailConfig.getPollIntervalHours()).thenReturn(2);
 
         UserSettings userNullInterval = UserSettings.builder()
                 .userId(USER_ID)
                 .gmailSearchQuery("query1")
                 .gmailConnected(true)
-                .pollIntervalMinutes(null) // null setting should fall back to 10 min
-                .lastSyncedAt(Instant.now().minus(java.time.Duration.ofMinutes(5)))
+                .pollIntervalHours(null)
+                .pollIntervalMinutes(null)
+                .lastSyncedAt(Instant.now().minus(java.time.Duration.ofMinutes(30)))
                 .build();
 
         when(userSettingsRepository.findByGmailConnectedTrue()).thenReturn(List.of(userNullInterval));
 
         ingestionService.scheduledPoll();
 
-        // 5 minutes elapsed < 10 minutes fallback -> should skip
+        // 30 minutes elapsed < 2 hours (120 min) fallback -> should skip
         verify(gmailService, never()).listMessages(anyString(), anyString(), anyLong());
     }
 }

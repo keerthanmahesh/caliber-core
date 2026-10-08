@@ -52,10 +52,10 @@ public class IngestionService {
     private static final Pattern SENDER_EXTRACTOR = Pattern.compile("^(?:\"?([^\"]*)\"?\\s*)?<([^>]+)>$");
 
     /**
-     * Scheduled background polling heartbeat (configurable via caliber.gmail.poll-interval-ms).
-     * Evaluates each user's pollIntervalMinutes against their lastSyncedAt timestamp before syncing.
+     * Scheduled background polling (configurable via caliber.gmail.poll-interval-hours).
+     * Evaluates each user's poll interval in hours against their lastSyncedAt timestamp before syncing.
      */
-    @Scheduled(fixedDelayString = "${caliber.gmail.poll-interval-ms:60000}", initialDelay = 60000)
+    @Scheduled(fixedDelayString = "PT${caliber.gmail.poll-interval-hours:1}H", initialDelay = 60000)
     public void scheduledPoll() {
         log.debug("Running scheduled Gmail ingestion poll check for connected users...");
         List<UserSettings> connectedUsers = userSettingsRepository.findByGmailConnectedTrue();
@@ -71,19 +71,20 @@ public class IngestionService {
                 continue;
             }
 
-            int defaultIntervalMinutes = gmailConfig.getPollIntervalMs() > 0
-                    ? (int) Math.max(1, gmailConfig.getPollIntervalMs() / 60000)
+            int defaultIntervalHours = gmailConfig.getPollIntervalHours() > 0
+                    ? gmailConfig.getPollIntervalHours()
                     : 1;
 
-            int intervalMinutes = settings.getPollIntervalMinutes() != null && settings.getPollIntervalMinutes() > 0
-                    ? settings.getPollIntervalMinutes()
-                    : defaultIntervalMinutes;
+            int intervalHours = settings.getEffectivePollIntervalHours() > 0
+                    ? settings.getEffectivePollIntervalHours()
+                    : defaultIntervalHours;
 
             if (settings.getLastSyncedAt() != null) {
                 long minutesSinceLastSync = Duration.between(settings.getLastSyncedAt(), now).toMinutes();
-                if (minutesSinceLastSync < intervalMinutes) {
-                    log.debug("Skipping user {}: last synced {} min(s) ago (interval: {} min(s)).",
-                            userId, minutesSinceLastSync, intervalMinutes);
+                long requiredMinutes = intervalHours * 60L;
+                if (minutesSinceLastSync < requiredMinutes) {
+                    log.debug("Skipping user {}: last synced {} min(s) ago (interval: {} hr(s)).",
+                            userId, minutesSinceLastSync, intervalHours);
                     continue;
                 }
             }

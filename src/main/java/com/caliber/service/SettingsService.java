@@ -48,7 +48,8 @@ public class SettingsService {
                             .gmailClientId(gmailConfig.getClientId())
                             .gmailClientSecret(gmailConfig.getClientSecret())
                             .gmailRefreshToken(gmailConfig.getRefreshToken())
-                            .pollIntervalMinutes((int) (gmailConfig.getPollIntervalMs() / 60000))
+                            .pollIntervalHours(gmailConfig.getPollIntervalHours())
+                            .pollIntervalMinutes(gmailConfig.getPollIntervalHours() * 60)
                             .autoArchiveProcessed(true)
                             .updatedAt(Instant.now())
                             .build();
@@ -68,13 +69,16 @@ public class SettingsService {
         boolean isGeminiConfigured = (s.getGeminiApiKey() != null && !s.getGeminiApiKey().isBlank()) ||
                 (aiConfig.getGemini().getApiKey() != null && !aiConfig.getGemini().getApiKey().isBlank());
 
+        int effectiveHours = s.getEffectivePollIntervalHours();
+
         return UserSettingsDto.builder()
                 .id(s.getId())
                 .userId(s.getUserId())
                 .gmailClientId(s.getGmailClientId() != null ? s.getGmailClientId() : gmailConfig.getClientId())
                 .gmailConnected(isGmailConnected)
                 .gmailSearchQuery(s.getGmailSearchQuery())
-                .pollIntervalMinutes(s.getPollIntervalMinutes())
+                .pollIntervalHours(effectiveHours)
+                .pollIntervalMinutes(effectiveHours * 60)
                 .autoArchiveProcessed(s.isAutoArchiveProcessed())
                 .inquiryTemplate(s.getInquiryTemplate())
                 .applicationTemplate(s.getApplicationTemplate())
@@ -93,7 +97,13 @@ public class SettingsService {
 
         if (update.getGmailClientId() != null) s.setGmailClientId(update.getGmailClientId());
         if (update.getGmailSearchQuery() != null) s.setGmailSearchQuery(update.getGmailSearchQuery());
-        if (update.getPollIntervalMinutes() != null) s.setPollIntervalMinutes(update.getPollIntervalMinutes());
+        if (update.getPollIntervalHours() != null && update.getPollIntervalHours() > 0) {
+            s.setPollIntervalHours(update.getPollIntervalHours());
+            s.setPollIntervalMinutes(update.getPollIntervalHours() * 60);
+        } else if (update.getPollIntervalMinutes() != null && update.getPollIntervalMinutes() > 0) {
+            s.setPollIntervalHours(Math.max(1, Math.round(update.getPollIntervalMinutes() / 60.0f)));
+            s.setPollIntervalMinutes(update.getPollIntervalMinutes());
+        }
         s.setAutoArchiveProcessed(update.isAutoArchiveProcessed());
         if (update.getInquiryTemplate() != null) s.setInquiryTemplate(update.getInquiryTemplate());
         if (update.getApplicationTemplate() != null) s.setApplicationTemplate(update.getApplicationTemplate());
