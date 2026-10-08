@@ -432,4 +432,42 @@ class IngestionServiceTest {
 
         verify(gmailService).listMessages(eq(USER_ID), anyString(), anyLong());
     }
+
+    @Test
+    void testScheduledPollSkipsUserIfIntervalNotReached() throws Exception {
+        when(gmailConfig.isPollEnabled()).thenReturn(true);
+        UserSettings userRecent = UserSettings.builder()
+                .userId(USER_ID)
+                .gmailSearchQuery("query1")
+                .gmailConnected(true)
+                .pollIntervalMinutes(15)
+                .lastSyncedAt(Instant.now().minus(java.time.Duration.ofMinutes(5)))
+                .build();
+
+        when(userSettingsRepository.findByGmailConnectedTrue()).thenReturn(List.of(userRecent));
+
+        ingestionService.scheduledPoll();
+
+        verify(gmailService, never()).listMessages(anyString(), anyString(), anyLong());
+    }
+
+    @Test
+    void testScheduledPollSyncsUserIfIntervalReached() throws Exception {
+        when(gmailConfig.isPollEnabled()).thenReturn(true);
+        UserSettings userDue = UserSettings.builder()
+                .userId(USER_ID)
+                .gmailSearchQuery("query1")
+                .gmailConnected(true)
+                .pollIntervalMinutes(10)
+                .lastSyncedAt(Instant.now().minus(java.time.Duration.ofMinutes(12)))
+                .build();
+
+        when(userSettingsRepository.findByGmailConnectedTrue()).thenReturn(List.of(userDue));
+        when(gmailService.listMessages(eq(USER_ID), anyString(), anyLong())).thenReturn(List.of());
+
+        ingestionService.scheduledPoll();
+
+        verify(gmailService).listMessages(eq(USER_ID), anyString(), anyLong());
+        verify(userSettingsRepository, atLeastOnce()).save(any(UserSettings.class));
+    }
 }

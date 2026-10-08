@@ -83,6 +83,7 @@ public class SettingsService {
                 .ollamaBaseUrl(aiConfig.getOllama().getBaseUrl())
                 .geminiConfigured(isGeminiConfigured)
                 .geminiModel(aiConfig.getGemini().getModel())
+                .lastSyncedAt(s.getLastSyncedAt())
                 .updatedAt(s.getUpdatedAt())
                 .build();
     }

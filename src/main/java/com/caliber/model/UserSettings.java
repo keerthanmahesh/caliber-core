@@ -57,5 +57,6 @@ public class UserSettings {
     private String groqApiKey;
     private String geminiApiKey;
 
+    private Instant lastSyncedAt;
     private Instant updatedAt;
 }

@@ -29,5 +29,6 @@ public class UserSettingsDto {
     private String groqModel;
     private boolean geminiConfigured;
     private String geminiModel;
+    private Instant lastSyncedAt;
     private Instant updatedAt;
 }

@@ -52,26 +52,40 @@ public class IngestionService {
     private static final Pattern SENDER_EXTRACTOR = Pattern.compile("^(?:\"?([^\"]*)\"?\\s*)?<([^>]+)>$");
 
     /**
-     * Scheduled background polling (configurable via caliber.gmail.poll-interval-ms).
-     * Iterates through all users who have connected their Gmail and executes synchronization.
+     * Scheduled background polling heartbeat (configurable via caliber.gmail.poll-interval-ms).
+     * Evaluates each user's pollIntervalMinutes against their lastSyncedAt timestamp before syncing.
      */
-    @Scheduled(fixedDelayString = "${caliber.gmail.poll-interval-ms}", initialDelay = 600000)
+    @Scheduled(fixedDelayString = "${caliber.gmail.poll-interval-ms:60000}", initialDelay = 60000)
     public void scheduledPoll() {
         if (!gmailConfig.isPollEnabled()) {
             return;
         }
 
-        log.info("Running scheduled Gmail ingestion poll for connected users...");
+        log.debug("Running scheduled Gmail ingestion poll check for connected users...");
         List<UserSettings> connectedUsers = userSettingsRepository.findByGmailConnectedTrue();
         if (connectedUsers.isEmpty()) {
             log.debug("No active users with Gmail connected. Scheduled poll skipped.");
             return;
         }
 
+        Instant now = Instant.now();
         for (UserSettings settings : connectedUsers) {
             String userId = settings.getUserId();
             if (userId == null || userId.isBlank()) {
                 continue;
+            }
+
+            int intervalMinutes = settings.getPollIntervalMinutes() != null && settings.getPollIntervalMinutes() > 0
+                    ? settings.getPollIntervalMinutes()
+                    : 10;
+
+            if (settings.getLastSyncedAt() != null) {
+                long minutesSinceLastSync = Duration.between(settings.getLastSyncedAt(), now).toMinutes();
+                if (minutesSinceLastSync < intervalMinutes) {
+                    log.debug("Skipping user {}: last synced {} min(s) ago (interval: {} min(s)).",
+                            userId, minutesSinceLastSync, intervalMinutes);
+                    continue;
+                }
             }
 
             try {
@@ -120,11 +134,26 @@ public class IngestionService {
                 processMessageStub(msgStub, userId, userEmail, gmail, counters);
             }
 
+            updateLastSyncedAt(userId);
             return buildSuccessResult(counters);
 
         } catch (Exception e) {
             log.error("Sync error: {}", e.getMessage(), e);
             return buildFailureResult(counters, e.getMessage());
+        }
+    }
+
+    private void updateLastSyncedAt(String userId) {
+        if (userId == null || userId.isBlank()) {
+            return;
+        }
+        try {
+            userSettingsRepository.findByUserId(userId).ifPresent(settings -> {
+                settings.setLastSyncedAt(Instant.now());
+                userSettingsRepository.save(settings);
+            });
+        } catch (Exception e) {
+            log.warn("Failed to update lastSyncedAt for user {}: {}", userId, e.getMessage());
         }
     }
 
