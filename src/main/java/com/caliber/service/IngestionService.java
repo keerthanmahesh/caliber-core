@@ -71,9 +71,13 @@ public class IngestionService {
                 continue;
             }
 
+            int defaultIntervalMinutes = gmailConfig.getPollIntervalMs() > 0
+                    ? (int) Math.max(1, gmailConfig.getPollIntervalMs() / 60000)
+                    : 1;
+
             int intervalMinutes = settings.getPollIntervalMinutes() != null && settings.getPollIntervalMinutes() > 0
                     ? settings.getPollIntervalMinutes()
-                    : 10;
+                    : defaultIntervalMinutes;
 
             if (settings.getLastSyncedAt() != null) {
                 long minutesSinceLastSync = Duration.between(settings.getLastSyncedAt(), now).toMinutes();
