@@ -18,7 +18,6 @@ public class UserSettingsDto {
     private boolean gmailConnected;
     private String gmailSearchQuery;
     private Integer pollIntervalHours;
-    private Integer pollIntervalMinutes;
     private boolean autoArchiveProcessed;
     private String inquiryTemplate;
     private String applicationTemplate;

@@ -49,7 +49,6 @@ public class SettingsService {
                             .gmailClientSecret(gmailConfig.getClientSecret())
                             .gmailRefreshToken(gmailConfig.getRefreshToken())
                             .pollIntervalHours(gmailConfig.getPollIntervalHours())
-                            .pollIntervalMinutes(gmailConfig.getPollIntervalHours() * 60)
                             .autoArchiveProcessed(true)
                             .updatedAt(Instant.now())
                             .build();
@@ -81,7 +80,6 @@ public class SettingsService {
                 .gmailConnected(isGmailConnected)
                 .gmailSearchQuery(s.getGmailSearchQuery())
                 .pollIntervalHours(effectiveHours)
-                .pollIntervalMinutes(effectiveHours * 60)
                 .autoArchiveProcessed(s.isAutoArchiveProcessed())
                 .inquiryTemplate(s.getInquiryTemplate())
                 .applicationTemplate(s.getApplicationTemplate())
@@ -102,10 +100,6 @@ public class SettingsService {
         if (update.getGmailSearchQuery() != null) s.setGmailSearchQuery(update.getGmailSearchQuery());
         if (update.getPollIntervalHours() != null && update.getPollIntervalHours() > 0) {
             s.setPollIntervalHours(update.getPollIntervalHours());
-            s.setPollIntervalMinutes(update.getPollIntervalHours() * 60);
-        } else if (update.getPollIntervalMinutes() != null && update.getPollIntervalMinutes() > 0) {
-            s.setPollIntervalHours(Math.max(1, Math.round(update.getPollIntervalMinutes() / 60.0f)));
-            s.setPollIntervalMinutes(update.getPollIntervalMinutes());
         }
         s.setAutoArchiveProcessed(update.isAutoArchiveProcessed());
         if (update.getInquiryTemplate() != null) s.setInquiryTemplate(update.getInquiryTemplate());

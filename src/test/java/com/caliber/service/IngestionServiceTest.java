@@ -468,7 +468,6 @@ class IngestionServiceTest {
                 .gmailSearchQuery("query1")
                 .gmailConnected(true)
                 .pollIntervalHours(null)
-                .pollIntervalMinutes(null)
                 .lastSyncedAt(Instant.now().minus(java.time.Duration.ofMinutes(30)))
                 .build();
 

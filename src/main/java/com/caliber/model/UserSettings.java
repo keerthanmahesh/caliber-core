@@ -42,14 +42,9 @@ public class UserSettings {
     @Builder.Default
     private Integer pollIntervalHours = 1;
 
-    private Integer pollIntervalMinutes;
-
     public Integer getEffectivePollIntervalHours() {
         if (pollIntervalHours != null && pollIntervalHours > 0) {
             return pollIntervalHours;
-        }
-        if (pollIntervalMinutes != null && pollIntervalMinutes > 0) {
-            return Math.max(1, Math.round(pollIntervalMinutes / 60.0f));
         }
         return null;
     }
