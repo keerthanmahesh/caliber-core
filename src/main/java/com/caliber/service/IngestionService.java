@@ -66,41 +66,56 @@ public class IngestionService {
 
         Instant now = Instant.now();
         for (UserSettings settings : connectedUsers) {
-            String userId = settings.getUserId();
-            if (userId == null || userId.isBlank()) {
-                continue;
-            }
-
-            int defaultIntervalHours = gmailConfig.getPollIntervalHours() > 0
-                    ? gmailConfig.getPollIntervalHours()
-                    : 1;
-
-            int intervalHours = settings.getEffectivePollIntervalHours() > 0
-                    ? settings.getEffectivePollIntervalHours()
-                    : defaultIntervalHours;
-
-            if (settings.getLastSyncedAt() != null) {
-                long minutesSinceLastSync = Duration.between(settings.getLastSyncedAt(), now).toMinutes();
-                long requiredMinutes = intervalHours * 60L;
-                if (minutesSinceLastSync < requiredMinutes) {
-                    log.debug("Skipping user {}: last synced {} min(s) ago (interval: {} hr(s)).",
-                            userId, minutesSinceLastSync, intervalHours);
-                    continue;
-                }
-            }
-
-            try {
-                if (gmailAuthService.isConfigured(userId)) {
-                    SyncResultDto result = syncNow(userId);
-                    log.info("Scheduled sync complete for user {}: {}", userId, result.getMessage());
-                } else {
-                    log.debug("Gmail not configured yet for user {}. Scheduled poll skipped.", userId);
-                }
-            } catch (Exception e) {
-                log.error("Scheduled sync encountered an error for user {}: {}", userId, e.getMessage());
+            if (isSyncDue(settings, now)) {
+                syncUserSafely(settings.getUserId());
             }
         }
     }
+
+    private boolean isSyncDue(UserSettings settings, Instant now) {
+        String userId = settings.getUserId();
+        if (userId == null || userId.isBlank()) {
+            return false;
+        }
+
+        if (settings.getLastSyncedAt() == null) {
+            return true;
+        }
+
+        int intervalHours = resolveIntervalHours(settings);
+        long minutesSinceLastSync = Duration.between(settings.getLastSyncedAt(), now).toMinutes();
+        long requiredMinutes = intervalHours * 60L;
+
+        if (minutesSinceLastSync < requiredMinutes) {
+            log.debug("Skipping user {}: last synced {} min(s) ago (interval: {} hr(s)).",
+                    userId, minutesSinceLastSync, intervalHours);
+            return false;
+        }
+
+        return true;
+    }
+
+    private int resolveIntervalHours(UserSettings settings) {
+        Integer userInterval = settings.getEffectivePollIntervalHours();
+        if (userInterval != null && userInterval > 0) {
+            return userInterval;
+        }
+        return gmailConfig.getPollIntervalHours() > 0 ? gmailConfig.getPollIntervalHours() : 1;
+    }
+
+    private void syncUserSafely(String userId) {
+        try {
+            if (gmailAuthService.isConfigured(userId)) {
+                SyncResultDto result = syncNow(userId);
+                log.info("Scheduled sync complete for user {}: {}", userId, result.getMessage());
+            } else {
+                log.debug("Gmail not configured yet for user {}. Scheduled poll skipped.", userId);
+            }
+        } catch (Exception e) {
+            log.error("Scheduled sync encountered an error for user {}: {}", userId, e.getMessage());
+        }
+    }
+
 
     /**
      * Synchronizes Gmail inbox messages immediately for the specified user.

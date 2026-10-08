@@ -69,7 +69,10 @@ public class SettingsService {
         boolean isGeminiConfigured = (s.getGeminiApiKey() != null && !s.getGeminiApiKey().isBlank()) ||
                 (aiConfig.getGemini().getApiKey() != null && !aiConfig.getGemini().getApiKey().isBlank());
 
-        int effectiveHours = s.getEffectivePollIntervalHours();
+        Integer userHours = s.getEffectivePollIntervalHours();
+        int effectiveHours = userHours != null && userHours > 0
+                ? userHours
+                : (gmailConfig.getPollIntervalHours() > 0 ? gmailConfig.getPollIntervalHours() : 1);
 
         return UserSettingsDto.builder()
                 .id(s.getId())
