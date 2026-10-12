@@ -21,6 +21,13 @@ public class ResumeService {
     private final ResumeDocumentRepository resumeDocumentRepository;
 
     public ResumeDto uploadResume(String userId, MultipartFile file) throws IOException {
+        String filename = file.getOriginalFilename();
+        String contentType = resolveContentType(filename, file.getContentType());
+
+        if (!isValidResumeFormat(filename, file.getContentType())) {
+            throw new IllegalArgumentException("Unsupported file format. Please upload a PDF or Word document (.pdf, .docx, .doc)");
+        }
+
         // Deactivate existing resumes for this user
         List<ResumeDocument> existing = resumeDocumentRepository.findByUserIdOrderByUploadedAtDesc(userId);
         for (ResumeDocument r : existing) {
@@ -28,10 +35,13 @@ public class ResumeService {
             resumeDocumentRepository.save(r);
         }
 
+        String safeFilename = (filename != null && !filename.isBlank()) ? filename :
+                (contentType.contains("word") || contentType.contains("officedocument") ? "Resume.docx" : "Resume.pdf");
+
         ResumeDocument doc = ResumeDocument.builder()
                 .userId(userId)
-                .filename(file.getOriginalFilename() != null ? file.getOriginalFilename() : "Resume.pdf")
-                .contentType(file.getContentType() != null ? file.getContentType() : "application/pdf")
+                .filename(safeFilename)
+                .contentType(contentType)
                 .data(file.getBytes())
                 .size(file.getSize())
                 .active(true)
@@ -39,9 +49,43 @@ public class ResumeService {
                 .build();
 
         ResumeDocument saved = resumeDocumentRepository.save(doc);
-        log.info("Saved new active resume '{}' ({} bytes) for user {}", saved.getFilename(), saved.getSize(), userId);
+        log.info("Saved new active resume '{}' ({} bytes, type='{}') for user {}",
+                saved.getFilename(), saved.getSize(), saved.getContentType(), userId);
 
         return toDto(saved);
+    }
+
+    private String resolveContentType(String filename, String rawContentType) {
+        if (filename != null) {
+            String lower = filename.toLowerCase();
+            if (lower.endsWith(".docx")) {
+                return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+            }
+            if (lower.endsWith(".doc")) {
+                return "application/msword";
+            }
+            if (lower.endsWith(".pdf")) {
+                return "application/pdf";
+            }
+        }
+        if (rawContentType != null && !rawContentType.isBlank() && !rawContentType.equalsIgnoreCase("application/octet-stream")) {
+            return rawContentType;
+        }
+        return "application/pdf";
+    }
+
+    private boolean isValidResumeFormat(String filename, String contentType) {
+        if (filename != null) {
+            String lower = filename.toLowerCase();
+            if (lower.endsWith(".pdf") || lower.endsWith(".docx") || lower.endsWith(".doc")) {
+                return true;
+            }
+        }
+        if (contentType != null) {
+            String lowerCt = contentType.toLowerCase();
+            return lowerCt.contains("pdf") || lowerCt.contains("word") || lowerCt.contains("officedocument") || lowerCt.contains("msword");
+        }
+        return false;
     }
 
     public Optional<ResumeDocument> getActiveResume(String userId) {

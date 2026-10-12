@@ -41,8 +41,12 @@ public class ResumeController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot upload empty file");
         }
         String userId = resolveUserId();
-        ResumeDto uploaded = resumeService.uploadResume(userId, file);
-        return ResponseEntity.ok(uploaded);
+        try {
+            ResumeDto uploaded = resumeService.uploadResume(userId, file);
+            return ResponseEntity.ok(uploaded);
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage(), ex);
+        }
     }
 
     @GetMapping("/active")
