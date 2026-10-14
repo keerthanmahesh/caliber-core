@@ -70,4 +70,25 @@ class GmailServiceTest {
         assertTrue(cleaned.contains("Lead Cloud Architect"));
         assertTrue(cleaned.contains("Rate is $95/hr on C2C"));
     }
+
+    @Test
+    void testCleanHtmlForEmail_RemovesBloatAndPreservesTable() {
+        String dirtyHtml = "<script>alert('xss');</script>" +
+                "<xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml>" +
+                "<p>Candidate Summary:</p>" +
+                "<table style=\"border: 1px solid black;\">" +
+                "<thead><tr><th>Skill</th><th>Years</th></tr></thead>" +
+                "<tbody><tr><td>Java</td><td>10</td></tr></tbody>" +
+                "</table>";
+
+        String cleanedHtml = gmailService.cleanHtmlForEmail(dirtyHtml);
+
+        assertNotNull(cleanedHtml);
+        assertFalse(cleanedHtml.contains("<script"));
+        assertFalse(cleanedHtml.contains("<xml"));
+        assertFalse(cleanedHtml.contains("OfficeDocumentSettings"));
+        assertTrue(cleanedHtml.contains("<table"));
+        assertTrue(cleanedHtml.contains("Candidate Summary:"));
+        assertTrue(cleanedHtml.contains("<td>Java</td>"));
+    }
 }

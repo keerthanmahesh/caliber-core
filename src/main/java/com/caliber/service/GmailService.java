@@ -4,6 +4,7 @@ import com.caliber.model.GmailActionLabel;
 import com.caliber.model.GmailEmploymentLabel;
 import com.caliber.model.JobEmail;
 import com.caliber.model.ResumeDocument;
+import com.google.api.client.http.ByteArrayContent;
 import com.google.api.services.gmail.Gmail;
 import com.google.api.services.gmail.model.Label;
 import com.google.api.services.gmail.model.ListLabelsResponse;
@@ -98,17 +99,19 @@ public class GmailService {
         // 1. Compose MIME Message with strict thread integrity headers
         MimeMessage mimeMessage = composeReplyMimeMessage(originalEmail, replySubject, replyBody, resumeToAttach);
 
-        // 2. Base64URL encode and send via Gmail API
+        // 2. Stream RFC822 MIME message directly via Gmail API Media Upload (supporting up to 35MB)
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         mimeMessage.writeTo(buffer);
         byte[] bytes = buffer.toByteArray();
-        String encodedEmail = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
 
         Message message = new Message();
-        message.setRaw(encodedEmail);
         message.setThreadId(originalEmail.getThreadId());
 
-        Message sentMessage = gmail.users().messages().send(AppConstants.GMAIL_USER_ME, message).execute();
+        ByteArrayContent mediaContent = new ByteArrayContent("message/rfc822", bytes);
+
+        Message sentMessage = gmail.users().messages()
+                .send(AppConstants.GMAIL_USER_ME, message, mediaContent)
+                .execute();
         log.info("Successfully sent reply for thread {} with Message-ID {}", originalEmail.getThreadId(), sentMessage.getId());
 
         // 3. Apply Gmail Labels, Inbox Removal, and Mark as Important
@@ -194,7 +197,7 @@ public class GmailService {
 
         // 2. Rich HTML part
         MimeBodyPart htmlPart = new MimeBodyPart();
-        htmlPart.setContent(htmlBody, "text/html; charset=UTF-8");
+        htmlPart.setContent(cleanHtmlForEmail(htmlBody), "text/html; charset=UTF-8");
         htmlPart.setHeader("Content-Type", "text/html; charset=UTF-8");
         alternative.addBodyPart(htmlPart);
 
@@ -543,6 +546,23 @@ public class GmailService {
         } catch (IllegalArgumentException e) {
             log.error("Failed to decode Base64URL string: {}", e.getMessage());
             throw new IllegalArgumentException("Invalid Base64URL content: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Sanitizes and cleans HTML email content, stripping external script/iframe tags
+     * and Word/Outlook XML artifacts while preserving valid email layout markup and tables.
+     */
+    public String cleanHtmlForEmail(String html) {
+        if (html == null || html.isBlank()) return EMPTY_STRING;
+        try {
+            Document doc = Jsoup.parse(html);
+            doc.select("script, noscript, iframe, link, meta, xml, o\\:p").remove();
+            doc.outputSettings().prettyPrint(false);
+            return doc.body() != null ? doc.body().html() : html;
+        } catch (Exception e) {
+            log.warn("HTML cleaning failed, falling back to raw html: {}", e.getMessage());
+            return html;
         }
     }
 

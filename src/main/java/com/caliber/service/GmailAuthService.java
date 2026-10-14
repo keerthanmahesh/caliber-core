@@ -255,7 +255,13 @@ public class GmailAuthService {
 
         HttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport();
         GoogleCredentials credentials = GoogleCredentials.create(new AccessToken(accessToken, null));
-        HttpRequestInitializer requestInitializer = new HttpCredentialsAdapter(credentials);
+        HttpRequestInitializer credentialsAdapter = new HttpCredentialsAdapter(credentials);
+        HttpRequestInitializer requestInitializer = request -> {
+            credentialsAdapter.initialize(request);
+            request.setEncoding(null);
+            request.setConnectTimeout(60_000);
+            request.setReadTimeout(60_000);
+        };
 
         return new Gmail.Builder(httpTransport, GsonFactory.getDefaultInstance(), requestInitializer)
                 .setApplicationName("Caliber")
