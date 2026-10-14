@@ -116,4 +116,73 @@ class ResumeServiceTest {
         assertThrows(IllegalArgumentException.class, () -> resumeService.uploadResume("user123", file));
         verify(resumeDocumentRepository, never()).save(any());
     }
+
+    @Test
+    void testDeleteResume_Inactive() {
+        ResumeDocument doc = ResumeDocument.builder()
+                .id("res-1")
+                .userId("user123")
+                .filename("old.pdf")
+                .active(false)
+                .build();
+
+        when(resumeDocumentRepository.findById("res-1")).thenReturn(java.util.Optional.of(doc));
+
+        resumeService.deleteResume("user123", "res-1");
+
+        verify(resumeDocumentRepository).delete(doc);
+        verify(resumeDocumentRepository, never()).findByUserIdOrderByUploadedAtDesc(any());
+    }
+
+    @Test
+    void testDeleteResume_Active_PromotesNext() {
+        ResumeDocument activeDoc = ResumeDocument.builder()
+                .id("res-active")
+                .userId("user123")
+                .filename("current.pdf")
+                .active(true)
+                .build();
+
+        ResumeDocument nextDoc = ResumeDocument.builder()
+                .id("res-next")
+                .userId("user123")
+                .filename("previous.pdf")
+                .active(false)
+                .build();
+
+        when(resumeDocumentRepository.findById("res-active")).thenReturn(java.util.Optional.of(activeDoc));
+        when(resumeDocumentRepository.findByUserIdOrderByUploadedAtDesc("user123"))
+                .thenReturn(java.util.List.of(nextDoc));
+
+        resumeService.deleteResume("user123", "res-active");
+
+        verify(resumeDocumentRepository).delete(activeDoc);
+        assertTrue(nextDoc.isActive());
+        verify(resumeDocumentRepository).save(nextDoc);
+    }
+
+    @Test
+    void testDeleteResume_ForbiddenUser() {
+        ResumeDocument doc = ResumeDocument.builder()
+                .id("res-1")
+                .userId("other-user")
+                .filename("secret.pdf")
+                .build();
+
+        when(resumeDocumentRepository.findById("res-1")).thenReturn(java.util.Optional.of(doc));
+
+        assertThrows(org.springframework.web.server.ResponseStatusException.class,
+                () -> resumeService.deleteResume("user123", "res-1"));
+        verify(resumeDocumentRepository, never()).delete(any());
+    }
+
+    @Test
+    void testDeleteResume_NotFound() {
+        when(resumeDocumentRepository.findById("res-none")).thenReturn(java.util.Optional.empty());
+
+        resumeService.deleteResume("user123", "res-none");
+
+        verify(resumeDocumentRepository, never()).delete(any());
+    }
 }
+

@@ -5,8 +5,10 @@ import com.caliber.model.ResumeDocument;
 import com.caliber.repository.ResumeDocumentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -114,6 +116,30 @@ public class ResumeService {
         for (ResumeDocument r : resumes) {
             r.setActive(r.getId().equals(resumeId));
             resumeDocumentRepository.save(r);
+        }
+    }
+
+    public void deleteResume(String userId, String resumeId) {
+        Optional<ResumeDocument> docOpt = resumeDocumentRepository.findById(resumeId);
+        if (docOpt.isEmpty()) {
+            return;
+        }
+        ResumeDocument doc = docOpt.get();
+        if (doc.getUserId() != null && !doc.getUserId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Cannot delete resume belonging to another user");
+        }
+        boolean wasActive = doc.isActive();
+        resumeDocumentRepository.delete(doc);
+        log.info("Deleted resume '{}' (id={}) for user {}", doc.getFilename(), resumeId, userId);
+
+        if (wasActive) {
+            List<ResumeDocument> remaining = resumeDocumentRepository.findByUserIdOrderByUploadedAtDesc(userId);
+            if (!remaining.isEmpty()) {
+                ResumeDocument nextActive = remaining.get(0);
+                nextActive.setActive(true);
+                resumeDocumentRepository.save(nextActive);
+                log.info("Promoted next resume '{}' (id={}) to active for user {}", nextActive.getFilename(), nextActive.getId(), userId);
+            }
         }
     }
 
